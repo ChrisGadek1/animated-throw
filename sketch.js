@@ -8,7 +8,7 @@ y piłki obliczona będzie jako 493 - e.y zamiast samego e.y*/
 //wyznaczony eksperymentalnie
 let dt = 0.01*8343/5000;
 let t = 0; //całkowity czas
-let e = new element(493,76); //obiekt który odpowiada piłce
+let e = new element(493,76,5); //obiekt który odpowiada piłce
 let sizeX = 1000; // szerokość układu współrzędnych w pikselach
 let sizeY = 500; // wysokość układu współrzędnych w pikselach
 let startedAnimation = false; //flagi
@@ -22,8 +22,9 @@ let alfa = 0; // kąt rzutu wyliczony na podstawie Vx i Vy lub podany przez uży
 let v = 0; // prędkość początkowa wyliczona na podstawie Vx i Vy lub podana przez użytkownika
 let confirmed_angle = false; // flaga, true jeżeli poprawny kąt został podany przez użytkownika 
 let confirmed_v = false; // flaga, true jeżeli poprawna prędkość początkowa została podana przez użytkownika
+
 function setup(){
-  myCanvas = createCanvas(1113, 537);
+  myCanvas = createCanvas(1113, 524);
   myCanvas.parent('main');
   img = loadImage('img/wykres.png');
   frameRate(100);
@@ -32,29 +33,41 @@ function setup(){
   e.addForce(0, 9.81);
 }
 function draw(){
+  let opor = 0.5*Math.pow(1.07,$("#preasure_range_air")[0].value-50);
+  e.m = 4*Math.pow(1.07, $("#mass_range_air")[0].value-50);
   if(startedAnimation){
-    document.getElementById('h').disabled = true; // gdy działa animacja, niektóre przyciski stają się nieaktywne
-    document.getElementById('angle_button').disabled = true;
-    document.getElementById('reset_button').disabled = false;
-    document.getElementById('vel_button').disabled = true;
-    document.getElementById('check_air').disabled = true;
+    $('#h')[0].disabled = true; // gdy działa animacja, niektóre przyciski stają się nieaktywne
+    $('#angle_button')[0].disabled = true;
+    $('#reset_button')[0].disabled = false;
+    $('#vel_button')[0].disabled = true;
+    $('#check_air')[0].disabled = true;
     if(!pause){
-      document.getElementById('start_button').disabled = true;
-      document.getElementById('pause_button').disabled = false;
+      $('#start_button')[0].disabled = true;
+      $('#pause_button')[0].disabled = false;
     }
     else{
-      document.getElementById('start_button').disabled = false;
-      document.getElementById('pause_button').disabled = true;
+      $('#start_button')[0].disabled = false;
+      $('#pause_button')[0].disabled = true;
     }
   }
   else{ // gdy animacja jeszcze się nie rozpoczęła, przyciski są jeszcze aktywne
-    document.getElementById('h').disabled = false;
-    document.getElementById('angle_button').disabled = false;
-    document.getElementById('vel_button').disabled = false;
-    document.getElementById('check_air').disabled = false;
-    document.getElementById('start_button').disabled = false;
-    document.getElementById('pause_button').disabled = true;
-    document.getElementById('reset_button').disabled = true;
+    $('#h')[0].disabled = false;
+    $('#angle_button')[0].disabled = false;
+    $('#vel_button')[0].disabled = false;
+    $('#check_air')[0].disabled = false;
+    $('#start_button')[0].disabled = false;
+    $('#pause_button')[0].disabled = true;
+    $('#reset_button')[0].disabled = true;
+  }
+  if(!$("#check_air")[0].checked || $("#check_air")[0].disabled){
+    $(".ranger").attr("disabled",true);
+  }
+  else{
+    $(".ranger").attr("disabled",false);
+    $("#preasure_amount")[0].innerHTML = Math.round(opor*2026 * 100) / 100+" hpa";
+    $("#mass_amount")[0].innerHTML = Math.round(e.m*2.5 * 100) / 100+" kg";
+    console.log(opor);
+    console.log(e.m);
   }
   fill(255);
   stroke('orange');
@@ -64,7 +77,7 @@ function draw(){
     fill(255);
     if(e.x <= 1080) { // gdy jeszcze piłka nie wyleciała poza układ współrzędnych
       strokeWeight(1);
-      fill(102);
+      fill(91,95,102);
       ellipse(e.x,e.y,15,15); // rysuje piłkę we wskazanym miejscu o średnicy 15 pikseli
       strokeWeight(3);
       fill(255);
@@ -73,10 +86,10 @@ function draw(){
       curveVertex(e.x,e.y+7); // rysuje czerwony ślad za piłką
       endShape();
       if(frameUpdate % 7 == 0){ // wyliczenia parametrów animacji i ich wypisanie na ekran (domyślnie co 7 klatek)
-        document.getElementById('predkosc').innerHTML = Math.round(velocity(e.Vx, e.Vy) * 100) / 100+"&nbspm/s";
-        document.getElementById('wysokosc').innerHTML = Math.round((493-e.y) * 100) / 100+"&nbspm";
-        document.getElementById('czas').innerHTML = Math.round(t * 100) / 100+"&nbsps";
-        document.getElementById('odleglosc').innerHTML = Math.round((e.x - 73) * 100) / 100+"&nbspm";
+        $('#predkosc')[0].innerHTML = Math.round((velocity(e.Vx, e.Vy))* 100) / 100+"&nbspm/s";
+        $('#wysokosc')[0].innerHTML = Math.round(((492-e.y) < 0.2 ? 0 : 492-e.y) * 100) / 100+"&nbspm";
+        $('#czas')[0].innerHTML = Math.round(t * 100) / 100+"&nbsps";
+        $('#odleglosc')[0].innerHTML = Math.round((e.x - 73) * 100) / 100+"&nbspm";
       }
     }
     else{ //jeżeli pauza jest aktywna, to jedynie należy podtrzymać czerwony ślad za piłką
@@ -87,21 +100,29 @@ function draw(){
     noFill();
     endShape();
     frameUpdate += 1;
-    // domyślnie współczynnik oporu został przyjęty na 0.12
-    if(document.getElementById('check_air').checked == true){ // jeżeli zaznaczony został opór ośrodka
-      e.y += e.Vy*dt + 0.5*0.12*e.Vy*dt*dt -0.5*9.81*dt*dt; // wzór na y(t) 
-      e.x += e.Vx*dt -0.5*0.12*e.Vx*dt*dt; // wzór na x(t)
-      e.Vx += (e.Ax - 0.12*e.Vx)*dt; // wzór na Vx(t)
-      e.Vy += (e.Ay - 0.12*e.Vy)*dt; // wzór na Vy(t)
-      if(e.y >= sizeY-7 && e.Vy >= 0){ // jeżeli piłka dotknie ziemi, to odbije się od niej zachowując 60% prędkośći
+    if($('#check_air')[0].checked == true){ // jeżeli zaznaczony został opór ośrodka
+      e.y += e.Vy*dt + 0.5*opor/e.m*e.Vy*dt*dt -0.5*9.81*dt*dt; // wzór na y(t)
+      e.x += e.Vx*dt -0.5*opor/e.m*e.Vx*dt*dt; // wzór na x(t)
+      e.Vx += (e.Ax - opor/e.m*e.Vx)*dt; // wzór na Vx(t)
+      if(Math.abs(e.Vy) < 0.2 && e.y >= sizeY - 8){
+        e.Vy = 0;
+        e.y = sizeY -7;
+      }
+      else e.Vy += (e.Ay - opor/e.m*e.Vy)*dt; // wzór na Vy(t)
+      if(e.y >= sizeY-7 && e.Vy >= 0 && e.Vy != 0){ // jeżeli piłka dotknie ziemi, to odbije się od niej zachowując 60% prędkośći
         e.Vy = -Math.abs(e.Vy*0.6);
       }
+      if(e.y >= sizeY-7) e.y = sizeY-7;
     }
     else{ // analogiczne wzory, jeżeli nie ma oporu ośrodka
       e.y += e.Vy*dt -0.5*9.81*dt*dt;
       e.x += e.Vx*dt;
       e.Vx += e.Ax*dt;
-      e.Vy += e.Ay*dt;
+      if(Math.abs(e.Vy) < 0.2 && e.y >= sizeY - 8){
+        e.Vy = 0;
+        e.y = sizeY -7;
+      }
+      else e.Vy += e.Ay*dt;
       if(e.y >= sizeY-7){
         e.Vy = -Math.abs(e.Vy*0.6);
       }
@@ -118,16 +139,18 @@ function draw(){
       //jeżeli użytkownik kliknął myszką w którymś miejscu układu współrzędnych, a nie były jeszcze ustalone
       //wartośći Vx i Vy to beginVx i beginVy zostaną zaaktualizowane.
       //Innymi słowy, flaga setData aktywna
-      draw_x = beginVx + 73;
-      draw_y = beginVy + e.y;
+      draw_x = beginVx + 75;
+      draw_y = beginVy + e.y + 7;
     }
     else{
       //flaga setData jest nieaktywna, czyli użytkownik wybiera jeszcze myszką Vx i Vy
       draw_x = mouseX;
       draw_y = mouseY;
-      document.getElementById('angle').value = Math.round(angle(mouseX - 73, mouseY - e.y)*180/Math.PI * 100) / 100; //obliczanie kąta z dokładnością do 2 miejsc po przecinku
-      document.getElementById('velocity').value = Math.round(velocity(mouseX-73, mouseY-e.y) * 100) / 100; // analogicznie prędkość początkowa
-      document.getElementById('height').value = Math.round((493-e.y) * 100) / 100; // oraz wysokość
+      console.log(mouseX - 75);
+      console.log(mouseY - e.y - 7.5);
+      $('#angle')[0].value = Math.round(angle(beginVx, beginVy)*180/Math.PI * 100) / 100; //obliczanie kąta z dokładnością do 2 miejsc po przecinku
+      $('#velocity')[0].value = Math.round(velocity(beginVx, beginVy) * 100) / 100; // analogicznie prędkość początkowa
+      $('#height')[0].value = Math.round((493-e.y) * 100) / 100; // oraz wysokość
     }
     line(73,e.y,draw_x,draw_y);
     it_y = draw_y;
@@ -153,9 +176,11 @@ function draw(){
     textSize(17);
     fill(0);
     //wypisuje obok kropek aktualne wartości Vx i Vy
-    text((parseInt(-draw_y + e.y,10)).toString()+'m/s', draw_x,(e.y+draw_y)/2);
-    text((parseInt(draw_x - 73)).toString()+'m/s', draw_x/2,draw_y);
-    fill(102);
+    text((parseInt(Math.round(-draw_y + e.y + 7),10)).toString()+'m/s', draw_x,(e.y+draw_y)/2);
+    text((parseInt(Math.round(draw_x - 75))).toString()+'m/s', draw_x/2,draw_y);
+    beginVy = -Math.round(-draw_y + e.y + 7);
+    beginVx = Math.round(draw_x - 75);
+    fill(91,95,102);
     strokeWeight(1);
     ellipse(e.x,e.y,15,15);
     strokeWeight(3);
@@ -163,7 +188,7 @@ function draw(){
   }
   //gdy zostanie wciśnięta pauza, należy rysować piłkę w tym samym miejscu i ślad za piłką też
   else{
-    fill(102);
+    fill(91,95,102);
     strokeWeight(1);
     ellipse(e.x,e.y,15,15);
     fill(255);
@@ -178,8 +203,8 @@ function mouseClicked(){
   if(!startedAnimation && !setData && mouseX >= 73 && mouseX <= sizeX + 73 && mouseY >= 0 && mouseY <= sizeY){
     //jeżeli myszka zostanie kliknięta na układ współrzędnych i flaga setData jest nieaktywna,
     //to ustalamy parametry animacji na podstawie położenia myszki i setData = true
-    beginVx = mouseX - 73;
-    beginVy = mouseY - e.y;
+    console.log(beginVx);
+    console.log(beginVy);
     setData = true;
   }
   else if(!startedAnimation && setData && mouseX >= 73 && mouseX <= sizeX + 73 && mouseY >= 0 && mouseY <= sizeY){
@@ -189,12 +214,12 @@ function mouseClicked(){
 }
 
 //głowny obiekt przechowujący dane piłki
-function element(y,x){
+function element(y,x,m){
   this.Ax = 0; // przyspieszenie w kierunku X
   this.Ay = 0 // przyspieszenie w kierunku Y
   this.Vx = 0; // prędkość w kierunku X
   this.Vy = 0; // prędkość w kierunku Y
-  this.m = 0; // masa (aktualnie nie używana)
+  this.m = m; // masa
   this.y = y; // położenie y
   this.x = x; // położenie x
 }
@@ -226,7 +251,7 @@ function mouseReleased(){
 function  mouseDragged(){
   if(!startedAnimation && moveBall && mouseY >= 0 && mouseY <= 493){
     e.y = mouseY;
-    document.getElementById('height').value = 493 - e.y;
+    $('#height')[0].value = 493 - e.y;
   }
 }
 
@@ -252,10 +277,10 @@ function stop(){
   pause = false;
   e.y = 493;
   e.x = 76;
-  document.getElementById('predkosc').innerHTML = "0.00&nbspm/s";
-  document.getElementById('wysokosc').innerHTML = "0.00&nbspm";
-  document.getElementById('czas').innerHTML = "0.00&nbsps";
-  document.getElementById('odleglosc').innerHTML = "0,00&nbspm";
+  $('#predkosc')[0].innerHTML = "0.00&nbspm/s";
+  $('#wysokosc')[0].innerHTML = "0.00&nbspm";
+  $('#czas')[0].innerHTML = "0.00&nbsps";
+  $('#odleglosc')[0].innerHTML = "0,00&nbspm";
   t=0;
   beginVx = 0;
   beginVy = 0;
@@ -275,15 +300,15 @@ function velocity(Vx, Vy){
 
 //funkcja wywoływana przy wciśnięciu przycisku "OK" przy wyborze kąta
 function confirm_angle(){
-  angle = document.getElementById('angle').value;
+  angle = $('#angle')[0].value;
   //mechanizm sprawdzania, czy dane są poprawne:
   angle = angle.replace(",",".");
   let reg = /-*\d+(\.\d+)?/;
   if(reg.test(angle) && angle > -90 && angle < 90){ // sprawdza czy kąt jest liczbą z przedziału -90 do 90
-    document.getElementById('info_angle').style.color = 'black';
+    $('#info_velocity').css("color","rgba(232, 232, 233,0.9)");
   }
   else{
-    document.getElementById('info_angle').style.color = 'red'; // podświetla uwagę na czerwono i nie pozwala przejść dalej
+    $('#info_angle')[0].style.color = 'red'; // podświetla uwagę na czerwono i nie pozwala przejść dalej
     return;
   }
   confirmed_angle = true;
@@ -297,14 +322,14 @@ function confirm_angle(){
 
 //analogicznie jak poprzednio, tylko dla prędkości początkowej
 function confirm_velocity(){
-  v = document.getElementById('velocity').value;
+  v = $('#velocity')[0].value;
   v = v.replace(",",".");
   let reg = /\d+(\.\d+)?/;
   if(reg.test(v) && v > 0 && v < 1113){
-    document.getElementById('info_velocity').style.color = 'black';
+    $('#info_velocity').css("color","rgba(232, 232, 233,0.9)");
   }
   else{
-    document.getElementById('info_velocity').style.color = 'red';
+    $('#info_velocity')[0].style.color = 'red';
     return;
   }
   confirmed_v = true;
@@ -317,15 +342,25 @@ function confirm_velocity(){
 
 //analogicznie jak poprzednio, tylko dla wysokości
 function confirm_height(){
-  height = document.getElementById('height').value;
+  height = $('#height')[0].value;
   height = height.replace(",",".");
   let reg = /\d+(\.\d+)?/;
   if(reg.test(height) && height >= 0 && height <= 500){
-    document.getElementById('info_height').style.color = 'black';
+    $('#info_velocity').css("color","rgba(232, 232, 233,0.9)");
   }
   else{
-    document.getElementById('info_height').style.color = 'red';
+    $('#info_height')[0].style.color = 'red';
     return;
   }
   e.y = 493 - height; //aktualizuje pozycję piłki
 }
+
+//podpięcie zdarzenia "kliknięcie myszą" do poszczególnych przycisków
+$(function(){
+  $('#start_button').click(start);
+  $('#pause_button').click(pause_f);
+  $('#reset_button').click(stop);
+  $('#h').click(confirm_height);
+  $('#angle_button').click(confirm_angle);
+  $('#vel_button').click(confirm_velocity);
+});
