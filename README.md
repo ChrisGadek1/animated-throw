@@ -13,3 +13,6 @@ The user can manipulate the start speed partial vectors by moving mouse on coord
 ![Alt_text](/img/screenshots/Screenshot_animation.png)
 During the animation
 
+# link to deployed app
+https://animated-throw.herokuapp.com/
+recommended size of your browser window is 80%-90%
