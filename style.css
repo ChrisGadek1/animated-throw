@@ -18,7 +18,7 @@ body{
 	position: fixed;
 	left:50%;
 	top:50%;
-	width: 1300px;
+	width: 1400px;
 	background-color: #5b5f6e;
 	border-radius: 15px;
 	border-style: groove;
@@ -35,7 +35,7 @@ body{
 	background-color:#454a5c;
 	border-radius: 15px;
 	font-size: 26px;
-	width: 270px;
+	width: 300px;
 	margin: 20px;
 }
 
